@@ -62,6 +62,7 @@ target_link_libraries(Projeto
         hardware_clocks
         hardware_rtc
         hardware_adc
+        hardware_pwm
 )
 
 pico_add_extra_outputs(Projeto)
