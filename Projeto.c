@@ -22,6 +22,95 @@
 #define JOYSTICK_Y_PIN 27  
 #define endereco 0x3C
 
+PIO pio; // Inicializa a estrutura da PIO
+uint sm;
+
+double led1[10][25] = {
+    {0, 0, 1, 0, 0,
+     0, 0, 1, 0, 0,
+     0, 0, 1, 0, 0,
+     0, 0, 0, 0, 0,
+     0, 0, 1, 0, 0,
+    }
+}; 
+
+double led2[10][25] = {
+    {0, 0, 0, 0, 0,
+     1, 0, 0, 0, 1,
+     0, 1, 0, 1, 0,
+     0, 0, 1, 0, 0,
+     0, 0, 0, 0, 0,
+    }
+}; 
+
+double led3[10][25] = {
+    {0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0,
+     0, 1, 1, 1, 0,
+     0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0,
+    }
+}; 
+
+
+// Sequência de LEDs
+int sequencia[25] = {
+    0, 1, 2, 3, 4,
+    9, 8, 7, 6, 5,
+    10, 11, 12, 13, 14,
+    19, 18, 17, 16, 15,
+    20, 21, 22, 23, 24
+};
+
+
+// Melhorar a intensidade
+uint32_t cores1(double vermelho)
+{
+  unsigned char R;
+  R = vermelho * 50; // Ajusta a intensidade do vermelho
+  return (R << 16); // Retorna o valor do vermelho (deslocamento de 16 bits) 
+}
+
+// Melhorar a intensidade
+uint32_t cores2(double verde)
+{
+  unsigned char G;
+  G = verde * 50; // Ajusta a intensidade do vermelho
+  return (G << 24); // Retorna o valor do vermelho (deslocamento de 16 bits) 
+}
+
+// Melhorar a intensidade
+uint32_t cores3(double azul)
+{
+  unsigned char B;
+  B = azul * 50; // Ajusta a intensidade do vermelho
+  return (B << 8); // Retorna o valor do vermelho (deslocamento de 16 bits) 
+}
+
+
+// Converte os valores da matriz de LEDs para a matriz de LEDs da PIO
+void display_num1(int number) {
+    for (int i = 0; i < 25; i++) {
+        uint32_t valor_led = cores1(led1[number][sequencia[24 - i]]);
+        pio_sm_put_blocking(pio, sm, valor_led);
+    }
+}
+
+void display_num2(int number) {
+    for (int i = 0; i < 25; i++) {
+        uint32_t valor_led = cores2(led2[number][sequencia[24 - i]]);
+        pio_sm_put_blocking(pio, sm, valor_led);
+    }
+}
+
+void display_num3(int number) {
+    for (int i = 0; i < 25; i++) {
+        uint32_t valor_led = cores3(led3[number][sequencia[24 - i]]);
+        pio_sm_put_blocking(pio, sm, valor_led);
+    }
+}
+
+
 // Variáveis globais
 int timer_minutes = 0;
 bool timer_active = false;
@@ -45,6 +134,7 @@ void check_timer() {
     if (timer_active && timer_minutes == 0) {
         set_led_color(1, 0, 0);
         timer_active = false;
+        display_num1(0);
     }
 }
 
@@ -57,13 +147,16 @@ void gpio_irq_handler(uint gpio, uint32_t events) {
                 set_led_color(0, 0, 0);
                 timer_active = true;
                 update_display();
+                display_num3(0);
         } else if (gpio == BUTTON_B) {
             timer_active = false;
             set_led_color(0, 1, 0);
+            display_num2(0);
         } else if (gpio == JOYSTICK_PB) {
                 set_led_color(0, 0, 1);
                 timer_active = true;
-                update_display();           
+                update_display();
+                display_num3(0);           
         }
         last_time = current_time;
     }
@@ -120,6 +213,12 @@ int main() {
     ssd1306_fill(&display, false);
     ssd1306_send_data(&display);
     update_display();
+
+    // Inicializa a PIO
+    pio = pio0;
+    uint offset = pio_add_program(pio, &led_program); 
+    uint sm = pio_claim_unused_sm(pio, true);
+    led_program_init(pio, sm, offset, 7);
 
     while (true) {
         if (timer_active && timer_minutes > 0) {
