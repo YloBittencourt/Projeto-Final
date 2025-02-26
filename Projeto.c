@@ -207,7 +207,7 @@ void gpio_irq_handler(uint gpio, uint32_t events) {
         // Verifica qual botão foi pressionado
         if (gpio == BUTTON_A) {
                 timer_minutes += 5;// Adiciona 5 minutos ao temporizador
-                set_led_color(0, 0, 0);
+                set_led_color(0, 0, 1);
                 timer_active = true; // Ativa o temporizador
                 update_display();
                 display_num3(0); // Exibe a matriz de LEDs led3
